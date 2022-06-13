@@ -1,69 +1,108 @@
-// dependacies
-const express = require('express');
+///////////////////////////////
+// DEPENDENCIES
+////////////////////////////////
+// get .env variables
+require("dotenv").config();
+// pull PORT from .env, give default value of 4000
+// pull MONGODB_URL from .env
+const { PORT = 4000, MONGODB_URL } = process.env;
+// import express
+const express = require("express");
+// create application object
 const app = express();
-const { default: mongoose } = require('mongoose');
-const morgan = require('morgan');
-const cors = require('cors');
+// import mongoose
+const mongoose = require("mongoose");
+// import middlware
+const cors = require("cors");
+const morgan = require("morgan");
 
-
-// initializing express
-constapp = express();
-// config app settings
-require('dotenv').config();
-
-const { PORT=4000, MONGODB_URL } = process.env;
-
-//connecte to mongo db
-mongoose.connect(MONGODB_URL);
-
-//Mongo stautu listeners 
+///////////////////////////////
+// DATABASE CONNECTION
+////////////////////////////////
+// Establish Connection
+mongoose.connect(MONGODB_URL, {
+  useUnifiedTopology: true,
+  useNewUrlParser: true,
+});
+// Connection Events
 mongoose.connection
-.on('connected', () => console.log('connected to MogoDB'))
-.on('error', (error) => console.log("you are disconnected from mongooseDb"))
+  .on("open", () => console.log("You are connected to mongoose"))
+  .on("close", () => console.log("You are disconnected from mongoose"))
+  .on("error", (error) => console.log(error));
 
-// set up our model
-const peopleShema = mongoose.Schema({
-    name: String,
-    image: String,
-    title: String,
-}, 
-{ timestamps: true });
-
-const People = mongoose.model('People', peopleShema);
-
-//mount middleware 
-app.use(cors()); // Access-Control-Allow: '*'
-app.use(morgan('dev'));
-app.use(express.json());
-
- // mont routes
-app.get('/', (req, res) => {
-    res.send('hello');
+///////////////////////////////
+// MODELS
+////////////////////////////////
+const PeopleSchema = new mongoose.Schema({
+  name: String,
+  image: String,
+  title: String,
 });
-// tell express to listen
-// app.listen(PORT, () => {
-//     console.log(`Express is listeningto prot :${PORT}`);
-// });
 
-// index
-app.get('/people', async (req, res) => {
-    try{
-        // const people = await People.find({});
-        res.json(await People.find({}));
-    }catch (error) {
-        console.log ('error: ', error);
-        res.json({error: 'something went wrong - check cosole'});
-    }
-})
-//create
-app.post('/people', async (req, res) => {
-    try{
-        res.json(await People.create(req, res));
-    }catch (error) {
-        console.log('error: ', error);
-        res.json({error: 'something went wrong - check cosole'});
-    }
+const People = mongoose.model("People", PeopleSchema);
+
+///////////////////////////////
+// MiddleWare
+////////////////////////////////
+app.use(cors()); // to prevent cors errors, open access to all origins
+app.use(morgan("dev")); // logging
+app.use(express.json()); // parse json bodies
+
+///////////////////////////////
+// ROUTES
+////////////////////////////////
+// create a test route
+app.get("/", (req, res) => {
+  res.send("hello world");
 });
-//update
 
-//delete
+// PEOPLE INDEX ROUTE
+app.get("/people", async (req, res) => {
+  try {
+    // send all people
+    res.json(await People.find({}));
+  } catch (error) {
+    //send error
+    res.status(400).json(error);
+  }
+});
+
+// PEOPLE CREATE ROUTE
+app.post("/people", async (req, res) => {
+  try {
+    // send all people
+    res.json(await People.create(req.body));
+  } catch (error) {
+    //send error
+    res.status(400).json(error);
+  }
+});
+
+// PEOPLE DELETE ROUTE
+app.delete("/people/:id", async (req, res) => {
+  try {
+    // send all people
+    res.json(await People.findByIdAndRemove(req.params.id));
+  } catch (error) {
+    //send error
+    res.status(400).json(error);
+  }
+});
+
+// PEOPLE UPDATE ROUTE
+app.put("/people/:id", async (req, res) => {
+  try {
+    // send all people
+    res.json(
+      await People.findByIdAndUpdate(req.params.id, req.body, { new: true })
+    );
+  } catch (error) {
+    //send error
+    res.status(400).json(error);
+  }
+});
+
+///////////////////////////////
+// LISTENER
+////////////////////////////////
+app.listen(PORT, () => console.log(`listening on PORT ${PORT}`));
